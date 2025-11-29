@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Surah Fatiha Quiz</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #1a1b2e;
+        color: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 600px;
+        width: 100%;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: #00fff5;
+        text-shadow: 0 0 20px rgba(0, 255, 245, 0.5);
+      }
+
+      .surah-name {
+        font-family: "Traditional Arabic", "Arabic Typesetting", "Scheherazade",
+          serif;
+      }
+
+      .score {
+        font-size: 1.2em;
+        color: #00fff5;
+      }
+
+      .ayah-container {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #00fff5;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0, 255, 245, 0.2);
+      }
+
+      .ayah-text {
+        font-family: "Traditional Arabic", "Arabic Typesetting", "Scheherazade",
+          serif;
+        font-size: 1.8em;
+        line-height: 1.8;
+        font-weight: 500;
+        margin-bottom: 10px;
+      }
+
+      .blank {
+        display: inline-block;
+        border-bottom: 3px solid #00fff5;
+        min-width: 100px;
+        padding: 0 10px;
+        color: #00fff5;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .ayah-number {
+        font-size: 1em;
+        color: #00fff5;
+        margin-top: 10px;
+      }
+
+      .choices-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .choice-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #00fff5;
+        border-radius: 12px;
+        padding: 25px 15px;
+        font-size: 1.5em;
+        font-family: "Traditional Arabic", "Arabic Typesetting", "Scheherazade",
+          serif;
+        color: #ffffff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .choice-btn:hover {
+        background: rgba(0, 255, 245, 0.1);
+        box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .choice-btn:active {
+        transform: translateY(0);
+      }
+
+      .choice-btn.correct {
+        background: rgba(0, 255, 100, 0.2);
+        border-color: #00ff64;
+        animation: correctAnim 0.5s ease;
+      }
+
+      .choice-btn.wrong {
+        background: rgba(255, 0, 100, 0.2);
+        border-color: #ff0064;
+        animation: wrongAnim 0.5s ease;
+      }
+
+      @keyframes correctAnim {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      @keyframes wrongAnim {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-10px);
+        }
+        75% {
+          transform: translateX(10px);
+        }
+      }
+
+      .buttons {
+        display: flex;
+      }
+
+      .back-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #00fff5;
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        font-weight: 500;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+      }
+
+      .back-btn:hover {
+        background: rgba(0, 255, 245, 0.1);
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(0, 255, 245, 0.5);
+      }
+
+      .next-btn {
+        background: #00fff5;
+        color: #1a1b2e;
+        border: none;
+        border-radius: 12px;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        font-weight: bold;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+      }
+
+      .next-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(0, 255, 245, 0.5);
+      }
+
+      .next-btn:disabled,
+      .next-btn:disabled:hover {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: scale(1);
+        box-shadow: none;
+      }
+
+      .final-score {
+        text-align: center;
+        padding: 40px;
+      }
+
+      .final-score h2 {
+        font-size: 3em;
+        color: #00fff5;
+        margin-bottom: 20px;
+        text-shadow: 0 0 30px rgba(0, 255, 245, 0.5);
+      }
+
+      .final-score p {
+        font-size: 1.5em;
+        margin-bottom: 30px;
+      }
+
+      .restart-btn {
+        background: #00fff5;
+        color: #1a1b2e;
+        border: none;
+        border-radius: 12px;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+      }
+
+      .restart-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(0, 255, 245, 0.5);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        .header h1 {
+          font-size: 2em;
+        }
+
+        .ayah-text {
+          font-size: 1.4em;
+        }
+
+        .choice-btn {
+          font-size: 1.2em;
+          padding: 20px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="default-header" class="header">
+        <h1>Surah Quiz</h1>
+      </div>
+
+      <div id="surah-header" class="header hidden">
+        <h1 id="surah-name" class="surah-name" lang="ar" dir="rtl">سورة</h1>
+        <div class="score">
+          Score: <span id="score">0</span>/<span class="numAyahs">0</span>
+        </div>
+      </div>
+
+      <div id="game-container" class="hidden">
+        <div class="ayah-container">
+          <div class="ayah-text" id="ayah-text" lang="ar" dir="rtl"></div>
+          <div class="ayah-number" id="ayah-number"></div>
+        </div>
+
+        <div
+          class="choices-grid"
+          id="answer-choices-grid"
+          lang="ar"
+          dir="rtl"
+        ></div>
+
+        <div id="buttons" class="buttons hidden">
+          <button class="back-btn" id="back-btn" onclick="location.reload()">
+            Back
+          </button>
+          <button class="next-btn" id="next-btn">Next</button>
+        </div>
+      </div>
+
+      <div id="surah-select">
+        <div class="choices-grid" id="surah-choices-grid"></div>
+      </div>
+
+      <div id="final-screen" class="final-score hidden">
+        <h2>Game Complete!</h2>
+        <p>
+          Final Score: <span id="final-score">0</span>/<span class="numAyahs"
+            >0</span
+          >
+        </p>
+        <button class="restart-btn" onclick="location.reload()">
+          Play Again
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let currentQuestion = 0;
+      let score = 0;
+      let selectedAnswer = false;
+      let questions = [];
+
+      async function getQuranMetadata() {
+        const response = await fetch("http://api.alquran.cloud/v1/surah");
+        if (!response.ok) {
+          throw new Error("Network response was not okay");
+        }
+        const data = await response.json();
+        return data.data;
+      }
+
+      function showSurahSelectPage() {
+        document.getElementById("surah-header").classList.add("hidden");
+        document.getElementById("game-container").classList.add("hidden");
+        document.getElementById("final-screen").classList.add("hidden");
+        document.getElementById("buttons").classList.add("hidden");
+
+        document.getElementById("default-header").classList.remove("hidden");
+        document.getElementById("surah-select").classList.remove("hidden");
+      }
+
+      function showQuizPage() {
+        document.getElementById("default-header").classList.add("hidden");
+        document.getElementById("surah-select").classList.add("hidden");
+        document.getElementById("final-screen").classList.add("hidden");
+
+        document.getElementById("surah-header").classList.remove("hidden");
+        document.getElementById("game-container").classList.remove("hidden");
+        document.getElementById("buttons").classList.remove("hidden");
+
+        document.getElementById("next-btn").disabled = true;
+      }
+
+      function showGameOverPage() {
+        document.getElementById("surah-header").classList.add("hidden");
+        document.getElementById("default-header").classList.add("hidden");
+        document.getElementById("surah-select").classList.add("hidden");
+        document.getElementById("game-container").classList.add("hidden");
+        document.getElementById("buttons").classList.add("hidden");
+
+        document.getElementById("final-screen").classList.remove("hidden");
+        document.getElementById("final-score").textContent = score;
+      }
+
+      async function startApp() {
+        showSurahSelectPage();
+        const surahs = await getQuranMetadata();
+
+        const choicesGrid = document.getElementById("surah-choices-grid");
+        choicesGrid.innerHTML = "";
+
+        console.log(surahs);
+
+        surahs.forEach((surah) => {
+          const button = document.createElement("button");
+          button.className = "choice-btn";
+          button.textContent = `${surah.number}. ${surah.englishName} ${surah.name}`;
+          button.onclick = () => initGame(surah.number);
+          choicesGrid.appendChild(button);
+        });
+        console.log(
+          "Buttons in DOM:",
+          document.querySelectorAll(".choice-btn").length
+        );
+      }
+
+      async function getAyahs(number) {
+        const response = await fetch(
+          `http://api.alquran.cloud/v1/surah/${number}`
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not okay");
+        }
+        const data = await response.json();
+        document.getElementById("surah-name").textContent = data.data.name;
+        ayahs = data.data.ayahs;
+        const bismillah = "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ";
+        if (
+          ayahs[0].text.includes(bismillah) &&
+          ayahs[0].text.slice(bismillah.length).trimStart().length > 0
+        ) {
+          ayahs[0].text = ayahs[0].text.slice(bismillah.length).trimStart();
+        }
+        return ayahs;
+      }
+
+      function getAllWords(ayahs) {
+        const words = ayahs
+          .map((ayah) => ayah.text)
+          .join(" ")
+          .trim()
+          .split(/\s+/);
+        return words;
+      }
+
+      async function initGame(number) {
+        const ayahs = await getAyahs(number);
+        const allWords = getAllWords(ayahs);
+        document
+          .querySelectorAll(".numAyahs")
+          .forEach((el) => (el.textContent = ayahs.length));
+        questions = ayahs.map((ayah) => {
+          const words = ayah.text.split(" ");
+          const randomIndex = Math.floor(Math.random() * words.length);
+          const correctWord = words[randomIndex];
+
+          const choices = [correctWord];
+          const availableWrongChoices = allWords.filter(
+            (w) => w !== correctWord
+          );
+
+          while (choices.length < 4 && availableWrongChoices.length > 0) {
+            const randomWrongIndex = Math.floor(
+              Math.random() * availableWrongChoices.length
+            );
+            const wrongWord = availableWrongChoices[randomWrongIndex];
+            if (!choices.includes(wrongWord)) {
+              choices.push(wrongWord);
+            }
+            availableWrongChoices.splice(randomWrongIndex, 1);
+          }
+
+          choices.sort(() => Math.random() - 0.5);
+
+          return {
+            ayah: ayah.text,
+            number: ayah.numberInSurah,
+            hiddenIndex: randomIndex,
+            correctWord: correctWord,
+            choices: choices,
+          };
+        });
+
+        loadQuestion();
+      }
+
+      function loadQuestion() {
+        if (currentQuestion >= questions.length) {
+          showGameOverPage();
+          return;
+        }
+
+        selectedAnswer = false;
+        const question = questions[currentQuestion];
+        const words = question.ayah.split(" ");
+        words[question.hiddenIndex] = '<span class="blank">_____</span>';
+
+        document.getElementById("ayah-text").innerHTML = words.join(" ");
+        document.getElementById(
+          "ayah-number"
+        ).textContent = `Ayah ${question.number}`;
+
+        const choicesGrid = document.getElementById("answer-choices-grid");
+        choicesGrid.innerHTML = "";
+
+        question.choices.forEach((choice) => {
+          const button = document.createElement("button");
+          button.className = "choice-btn";
+          button.textContent = choice;
+          button.onclick = () => selectAnswer(choice, button);
+          choicesGrid.appendChild(button);
+        });
+
+        showQuizPage();
+      }
+
+      function selectAnswer(selected, button) {
+        if (selectedAnswer) return;
+
+        selectedAnswer = true;
+        const question = questions[currentQuestion];
+        const isCorrect = selected === question.correctWord;
+
+        if (isCorrect) {
+          button.classList.add("correct");
+          score++;
+          document.getElementById("score").textContent = score;
+        } else {
+          button.classList.add("wrong");
+          document.querySelectorAll(".choice-btn").forEach((btn) => {
+            if (btn.textContent === question.correctWord) {
+              btn.classList.add("correct");
+            }
+          });
+        }
+
+        document.querySelectorAll(".choice-btn").forEach((btn) => {
+          btn.style.pointerEvents = "none";
+        });
+
+        const words = question.ayah.split(" ");
+        words[
+          question.hiddenIndex
+        ] = `<span class="blank" style="animation: none; color: ${
+          isCorrect ? "#00ff64" : "#ff0064"
+        };">${question.correctWord}</span>`;
+        document.getElementById("ayah-text").innerHTML = words.join(" ");
+
+        setTimeout(() => {
+          document.getElementById("next-btn").disabled = false;
+        }, 100);
+      }
+
+      document.getElementById("next-btn").addEventListener("click", () => {
+        currentQuestion++;
+        loadQuestion();
+      });
+
+      startApp();
+    </script>
+  </body>
+</html>
