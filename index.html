@@ -329,12 +329,18 @@
       let questions = [];
 
       async function getQuranMetadata() {
-        const response = await fetch("https://api.alquran.cloud/v1/surah");
-        if (!response.ok) {
-          throw new Error("Network response was not okay");
+        try {
+          const response = await fetch("https://api.alquran.cloud/v1/surah");
+          if (!response.ok) {
+            throw new Error("Network response was not okay");
+          }
+          const data = await response.json();
+          return data.data;
+        } catch (error) {
+          console.error("Failed to fetch Quran metadata:", error);
+          alert("Failed to load data. Please check your internet connection.");
+          return [];
         }
-        const data = await response.json();
-        return data.data;
       }
 
       function showSurahSelectPage() {
@@ -387,13 +393,14 @@
       }
 
       async function getAyahs(number) {
-        const response = await fetch(
-          `https://api.alquran.cloud/v1/surah/${number}`
-        );
-        if (!response.ok) {
-          throw new Error("Network response was not okay");
-        }
-        const data = await response.json();
+        try {
+          const response = await fetch(
+            `https://api.alquran.cloud/v1/surah/${number}`
+          );
+          if (!response.ok) {
+            throw new Error("Network response was not okay");
+          }
+          const data = await response.json();
         document.getElementById("surah-name").textContent = data.data.name;
         ayahs = data.data.ayahs;
         const bismillah = "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ";
@@ -404,6 +411,11 @@
           ayahs[0].text = ayahs[0].text.slice(bismillah.length).trimStart();
         }
         return ayahs;
+        } catch (error) {
+          console.error("Failed to fetch ayahs:", error);
+          alert("Failed to load surah. Please try again.");
+          return [];
+        }
       }
 
       function getAllWords(ayahs) {
