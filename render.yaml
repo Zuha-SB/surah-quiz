@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: surah-quiz
+    env: static
+    buildCommand: npm install && npx expo export:web
+    staticPublishPath: ./web-build
+    envVars:
+      - key: NODE_VERSION
+        value: 18.x
