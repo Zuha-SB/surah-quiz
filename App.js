@@ -35,11 +35,12 @@ export default function App() {
   }, []);
 
   async function getQuranMetadata() {
-    const response = await fetch('https://api.alquran.cloud/v1/surah');
+    const response = await fetch('https://quran-proxy.zuha.dev');
     if (!response.ok) {
       throw new Error('Network response was not okay');
     }
-    const data = await response.json();
+    const text = await response.text();
+    const data = JSON.parse(text);
     return data.data;
   }
 
@@ -56,7 +57,7 @@ export default function App() {
   }
 
   async function getAyahs(number) {
-    const response = await fetch(`https://api.alquran.cloud/v1/surah/${number}`);
+    const response = await fetch(`https://surah-proxy.zuha.dev/?number=${number}`);
     if (!response.ok) {
       throw new Error('Network response was not okay');
     }
