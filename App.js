@@ -74,12 +74,25 @@ export default function App() {
     return ayahs;
   }
 
+  function normalizeWord(word) {
+    return (word || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+  }
+
+  function getAyahWords(text) {
+    return (text || '')
+      .split(/\s+/)
+      .map((word) => normalizeWord(word))
+      .filter(Boolean);
+  }
+
   function getAllWords(ayahs) {
     const words = ayahs
       .map((ayah) => ayah.text)
       .join(' ')
       .trim()
-      .split(/\s+/);
+      .split(/\s+/)
+      .map((word) => normalizeWord(word))
+      .filter(Boolean);
     return [...new Set(words)];
   }
 
@@ -91,11 +104,12 @@ export default function App() {
       setNumAyahs(ayahs.length);
 
       const generatedQuestions = ayahs.map((ayah) => {
-        const words = ayah.text.split(' ');
+        const words = getAyahWords(ayah.text);
         const randomIndex = Math.floor(Math.random() * words.length);
         const correctWord = words[randomIndex];
 
         const choices = [correctWord];
+        const chosenNormalized = new Set([normalizeWord(correctWord)]);
         const availableWrongChoices = allWords.filter((w) => w !== correctWord);
 
         while (choices.length < 4 && availableWrongChoices.length > 0) {
@@ -103,11 +117,37 @@ export default function App() {
             Math.random() * availableWrongChoices.length
           );
           const wrongWord = availableWrongChoices[randomWrongIndex];
-          if (!choices.includes(wrongWord)) {
+          const normalizedWrongWord = normalizeWord(wrongWord);
+
+          if (!chosenNormalized.has(normalizedWrongWord)) {
             choices.push(wrongWord);
+            chosenNormalized.add(normalizedWrongWord);
+          } else {
+            console.log('[Quiz Duplicate Prevented]', {
+              ayahNumber: ayah.numberInSurah,
+              wrongWord,
+              normalizedWrongWord,
+              existingChoices: choices,
+            });
           }
           availableWrongChoices.splice(randomWrongIndex, 1);
         }
+
+        const normalizedCounts = choices.reduce((acc, choice) => {
+          const key = normalizeWord(choice);
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+        const duplicateKeys = Object.keys(normalizedCounts).filter(
+          (key) => normalizedCounts[key] > 1
+        );
+
+        console.log('[Quiz Question Built]', {
+          ayahNumber: ayah.numberInSurah,
+          correctWord,
+          choices,
+          duplicateKeys,
+        });
 
         choices.sort(() => Math.random() - 0.5);
 
@@ -206,7 +246,7 @@ export default function App() {
     }
 
     const question = questions[currentQuestion];
-    const words = question.ayah.split(' ');
+    const words = getAyahWords(question.ayah);
 
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
