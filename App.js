@@ -74,23 +74,33 @@ export default function App() {
     return ayahs;
   }
 
+  function cleanText(text) {
+    return (text || '')
+      .normalize('NFC')
+      .replace(/[\u00A0\u1680\u2000-\u200D\u202F\u205F\u2060\u3000\uFEFF]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function normalizeWord(word) {
-    return (word || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+    return (word || '')
+      .normalize('NFC')
+      .replace(/[\u00A0\u200B-\u200D\u2060\uFEFF]/g, '')
+      .trim();
   }
 
   function getAyahWords(text) {
-    return (text || '')
-      .split(/\s+/)
-      .map((word) => normalizeWord(word))
+    return cleanText(text)
+      .split(' ')
+      .map(normalizeWord)
       .filter(Boolean);
   }
 
   function getAllWords(ayahs) {
-    const words = ayahs
-      .map((ayah) => ayah.text)
-      .join(' ')
-      .trim()
-      .split(/\s+/)
+    const words = cleanText(
+      ayahs.map((ayah) => ayah.text).join(' ')
+    )
+      .split(' ')
       .map((word) => normalizeWord(word))
       .filter(Boolean);
     return [...new Set(words)];
