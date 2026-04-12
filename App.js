@@ -6,8 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { supabase } from './supabase';
 
 const COLORS = {
   background: '#1a1b2e',
@@ -26,13 +30,90 @@ export default function App() {
   const [surahs, setSurahs] = useState([]);
   const [selectedSurah, setSelectedSurah] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [screen, setScreen] = useState('surah-select'); // 'surah-select', 'quiz', 'final'
+  const [screen, setScreen] = useState('surah-select'); // 'surah-select', 'auth', 'quiz', 'final'
   const [numAyahs, setNumAyahs] = useState(0);
   const [surahName, setSurahName] = useState('');
 
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [userScores, setUserScores] = useState({});
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
+
   useEffect(() => {
     loadSurahs();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (user) loadUserScores();
+    else setUserScores({});
+  }, [user]);
+
+  useEffect(() => {
+    if (screen === 'surah-select' && user) loadUserScores();
+  }, [screen]);
+
+  async function loadUserScores() {
+    const { data, error } = await supabase
+      .from('scores')
+      .select('surah_number, score, total');
+    if (error || !data) return;
+
+    const best = {};
+    for (const row of data) {
+      const pct = row.score / row.total;
+      if (!best[row.surah_number] || pct > best[row.surah_number].score / best[row.surah_number].total) {
+        best[row.surah_number] = { score: row.score, total: row.total };
+      }
+    }
+    setUserScores(best);
+  }
+
+  async function saveScore(finalScore, total, surahNum, sName) {
+    if (!user) return;
+    const { error } = await supabase.from('scores').insert({
+      surah_number: surahNum,
+      surah_name: sName,
+      score: finalScore,
+      total: total,
+    });
+    if (!error) setScoreSaved(true);
+  }
+
+  async function handleSignIn() {
+    setAuthError('');
+    setAuthLoading(true);
+    const { error } = isSignUp
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+    setAuthLoading(false);
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setEmail('');
+      setPassword('');
+      setScreen('surah-select');
+    }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setUserScores({});
+  }
 
   async function getQuranMetadata() {
     const response = await fetch('https://quran-proxy.zuha.dev');
@@ -109,6 +190,7 @@ export default function App() {
   async function initGame(number) {
     try {
       setLoading(true);
+      setSelectedSurah(number);
       const ayahs = await getAyahs(number);
       const allWords = getAllWords(ayahs);
       setNumAyahs(ayahs.length);
@@ -197,6 +279,8 @@ export default function App() {
 
   function handleNext() {
     if (currentQuestion + 1 >= questions.length) {
+      setScoreSaved(false);
+      saveScore(score, numAyahs, selectedSurah, surahName);
       setScreen('final');
     } else {
       setCurrentQuestion(currentQuestion + 1);
@@ -215,6 +299,62 @@ export default function App() {
     setNumAyahs(0);
   }
 
+  function renderAuth() {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.centerContainer}
+      >
+        <View style={styles.authCard}>
+          <Text style={styles.authTitle}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
+
+          {authError ? <Text style={styles.authError}>{authError}</Text> : null}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+          />
+
+          <TouchableOpacity
+            style={[styles.authBtn, authLoading && { opacity: 0.6 }]}
+            onPress={handleSignIn}
+            disabled={authLoading}
+          >
+            {authLoading
+              ? <ActivityIndicator color={COLORS.background} />
+              : <Text style={styles.authBtnText}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setAuthError(''); }}>
+            <Text style={styles.authToggle}>
+              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setScreen('surah-select')} style={{ marginTop: 8 }}>
+            <Text style={[styles.authToggle, { opacity: 0.5 }]}>Continue without account</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
   function renderSurahSelect() {
     if (loading) {
       return (
@@ -228,19 +368,39 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Surah Quiz</Text>
+          {user ? (
+            <View style={styles.userRow}>
+              <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
+              <TouchableOpacity onPress={handleSignOut}>
+                <Text style={styles.signOutText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => setScreen('auth')}>
+              <Text style={styles.loginLink}>Login to save scores</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.choicesGrid}>
-          {surahs.map((surah) => (
-            <TouchableOpacity
-              key={surah.number}
-              style={styles.choiceBtn}
-              onPress={() => initGame(surah.number)}
-            >
-              <Text style={styles.choiceBtnText}>
-                {surah.number}. {surah.englishName} {surah.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {surahs.map((surah) => {
+            const best = userScores[surah.number];
+            return (
+              <TouchableOpacity
+                key={surah.number}
+                style={styles.choiceBtn}
+                onPress={() => initGame(surah.number)}
+              >
+                <Text style={styles.choiceBtnText}>
+                  {surah.number}. {surah.englishName} {surah.name}
+                </Text>
+                {best && (
+                  <Text style={styles.scoreBadge}>
+                    Best: {best.score}/{best.total}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -348,6 +508,11 @@ export default function App() {
           <Text style={styles.finalScoreText}>
             Final Score: {score}/{numAyahs}
           </Text>
+          {user && (
+            <Text style={styles.scoreSavedText}>
+              {scoreSaved ? '✓ Score saved' : 'Saving score...'}
+            </Text>
+          )}
           <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
             <Text style={styles.restartBtnText}>Play Again</Text>
           </TouchableOpacity>
@@ -360,6 +525,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
       {screen === 'surah-select' && renderSurahSelect()}
+      {screen === 'auth' && renderAuth()}
       {screen === 'quiz' && renderQuiz()}
       {screen === 'final' && renderFinal()}
     </View>
@@ -394,6 +560,94 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 255, 245, 0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userEmail: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    maxWidth: 200,
+  },
+  signOutText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loginLink: {
+    color: COLORS.primary,
+    fontSize: 14,
+    opacity: 0.8,
+    textDecorationLine: 'underline',
+  },
+  scoreBadge: {
+    color: COLORS.correct,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  authCard: {
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderRadius: 15,
+    padding: 30,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  authTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  authError: {
+    color: COLORS.wrong,
+    fontSize: 13,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,245,0.3)',
+    borderRadius: 10,
+    padding: 14,
+    color: COLORS.white,
+    fontSize: 16,
+    marginBottom: 14,
+  },
+  authBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  authBtnText: {
+    color: COLORS.background,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  authToggle: {
+    color: COLORS.primary,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  scoreSavedText: {
+    color: COLORS.correct,
+    fontSize: 14,
+    marginBottom: 16,
   },
   surahName: {
     fontSize: 28,
@@ -540,7 +794,7 @@ const styles = StyleSheet.create({
   finalScoreText: {
     fontSize: 24,
     color: COLORS.white,
-    marginBottom: 30,
+    marginBottom: 16,
     textAlign: 'center',
   },
   restartBtn: {
@@ -560,4 +814,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

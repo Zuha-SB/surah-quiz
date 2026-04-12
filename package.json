@@ -11,7 +11,9 @@
     "clear": "expo start --clear"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
     "expo": "~54.0.30",
+    "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
